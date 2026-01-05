@@ -24,6 +24,8 @@ contract IntegrationTest is Test {
         registry.authorizeManager(address(reputationManager));
         reputationManager.authorizeContract(address(escrow));
 
+        escrow.setPlatformFeeRecipient(address(0x4));
+
         vm.deal(master, 100 ether);
         vm.deal(worker, 100 ether);
         vm.deal(subcontractor, 100 ether);

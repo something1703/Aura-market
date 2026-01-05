@@ -1,16 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-interface IAgentRegistry {
-    function isAgentActive(address _agent) external view returns (bool);
-}
-
-interface IReputationManager {
-    function increaseReputation(address _agent, uint256 _amount) external;
-    function decreaseReputation(address _agent, uint256 _amount) external;
-    function applySlash(address _agent, uint256 _amount) external;
-    function recordEarnings(address _agent, uint256 _amount) external;
-}
+import "forge-std/console.sol";
+import "./interfaces/IAgentRegistry.sol";
+import "./interfaces/IReputationManager.sol";
 
 contract AgentEscrow {
     enum JobState {
@@ -220,14 +213,22 @@ contract AgentEscrow {
         uint256 platformFee = (job.price * PLATFORM_FEE_PERCENTAGE) / 100;
         uint256 workerPayment = job.price - platformFee;
 
+        console.log("Job price:", job.price);
+        console.log("Platform fee:", platformFee);
+        console.log("Worker payment:", workerPayment);
+        console.log("Platform fee recipient:", platformFeeRecipient);
+
         reputationManager.increaseReputation(job.worker, 10);
         reputationManager.recordEarnings(job.worker, workerPayment);
+        reputationManager.increaseReputation(job.master, 0);
 
-        (bool success1, ) = payable(job.worker).call{value: workerPayment}("");
-        if (!success1) revert TransferFailed();
+        console.log("Balance before transfers:", address(this).balance);
+        console.log("Worker payment:", workerPayment, "to", job.worker);
+        console.log("Platform fee:", platformFee, "to", platformFeeRecipient);
+
+        payable(job.worker).transfer(workerPayment);
         
-        (bool success2, ) = payable(platformFeeRecipient).call{value: platformFee}("");
-        if (!success2) revert TransferFailed();
+        payable(platformFeeRecipient).transfer(platformFee);
 
         emit JobApproved(
             _jobId,
